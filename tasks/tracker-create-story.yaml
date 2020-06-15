@@ -1,0 +1,30 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: cimg/base
+    tag: stable
+
+params:
+  tracker_token:
+  tracker_project_id:
+
+inputs:
+  - name: story
+
+run:
+  path: sh
+  args:
+    - -ecu
+    - |
+      : ${tracker_token:?required param is not set}
+      : ${tracker_project_id:?required param is not set}
+
+      story_payload=$(cat story/payload.json)
+      curl -X POST \
+        -H "X-TrackerToken: $tracker_token" \
+        -H "Content-Type: application/json" \
+        -d "$story_payload" \
+        "https://www.pivotaltracker.com/services/v5/projects/$tracker_project_id/stories"

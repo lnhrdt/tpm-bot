@@ -1,0 +1,37 @@
+---
+resources:
+  - name: source
+    type: git
+    source:
+      uri: https://github.com/lnhrdt/tpm-bot.git
+
+  - name: friday-morning
+    type: time
+    source:
+      start: 0900
+      stop: 0905
+      location: America/Los_Angeles
+
+jobs:
+  - name: create-s31-status-story
+    serial: true
+    plan:
+      - get: friday-morning
+        trigger: true
+      - get: source
+      - task: build story
+        file: source/tasks/tracker-build-story-tob-date.yaml
+        params:
+          story_title: verify S31 status submissions
+          story_labels: space,status
+          story_description: |
+            Make sure that each team has submitted to the [Federal Project Status Updates](https://docs.google.com/spreadsheets/d/1SrUsUoo9rfg7W5K9cBUVTy5XrsbnOH21r3uUH7ZWR_A/edit) spreadsheet.
+          story_estimate: 1
+          tracker_token: ((tpm-bot.tracker-token))
+          tracker_project_id: ((tpm-bot.tracker-project-id))
+          TZ: America/Los_Angeles
+      - task: create story
+        file: source/tasks/tracker-create-story.yaml
+        params:
+          tracker_token: ((tpm-bot.tracker-token))
+          tracker_project_id: ((tpm-bot.tracker-project-id))

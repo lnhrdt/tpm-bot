@@ -1,0 +1,55 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: cimg/base
+    tag: stable
+
+params:
+  story_title:
+  story_description:
+  story_labels:
+  story_estimate:
+  tracker_token:
+  tracker_project_id:
+  TZ:
+
+outputs:
+  - name: story
+
+run:
+  path: sh
+  args:
+    - -ecu
+    - |
+      : ${story_title:?required param is not set}
+      : ${tracker_token:?required param is not set}
+      : ${tracker_project_id:?required param is not set}
+      : ${TZ:?required param is not set}
+
+      date=$(date "+%Y-%m-%d")
+      story_name="$story_title $date"
+      story_state="unstarted"
+      story_description=$(cat <<END
+      $story_description
+
+      ---
+
+      created by [TPM Bot](https://github.com/lnhrdt/tpm-bot)
+      END
+      )
+      before_id=$(curl -sX GET \
+        -H "X-TrackerToken: $tracker_token" \
+        "https://www.pivotaltracker.com/services/v5/projects/$tracker_project_id/stories?limit=1&with_state=unstarted" \
+        | jq '.[0].id')
+      jq -n \
+        --argjson before_id $before_id \
+        --argjson estimate $story_estimate \
+        --arg description "$story_description" \
+        --arg name "$story_name" \
+        --arg labels "$story_labels" \
+        --arg state "$story_state" \
+        '{current_state: "unstarted", before_id: $before_id, description: $description, estimate: $estimate, name: $name, labels: $labels | split(",")}' \
+        | sudo tee story/payload.json
